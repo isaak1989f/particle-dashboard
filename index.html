@@ -1,318 +1,330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Particle Boron Control Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <style>
-    body { background-color: #f8f9fa; }
-    .device-card { margin-bottom: 20px; }
-    .online { color: #28a745; font-weight: bold; }
-    .offline { color: #dc3545; font-weight: bold; }
-    .function-input { width: 200px; display: inline-block; margin-right: 10px; }
-    .result-span { margin-left: 10px; font-style: italic; }
-    .pointer { cursor: pointer; }
-  </style>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/particle-api-js@8/dist/particle.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Boron Control Dashboard</title>
+    <!-- Bootstrap CSS (original with integrity + crossorigin) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
+          rel="stylesheet" 
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
+          crossorigin="anonymous">
+    <style>
+        body { background-color: #f8f9fa; }
+        .device-card { margin-bottom: 20px; }
+        .online { color: #28a745; font-weight: bold; }
+        .offline { color: #dc3545; font-weight: bold; }
+        .function-input { width: 200px; display: inline-block; margin-right: 10px; }
+        .result-span { margin-left: 10px; font-style: italic; }
+        .pointer { cursor: pointer; }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particle-api-js@8/dist/particle.min.js"></script>
+    <!-- Bootstrap JS (original with integrity + crossorigin) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" 
+            crossorigin="anonymous"></script>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="#">Particle Boron Dashboard</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item">
-          <button id="logoutBtn" class="btn btn-outline-light" style="display:none;">Logout</button>
-        </li>
-      </ul>
-    </div>
-  </div>
-</nav>
-
-<div class="container mt-4">
-  <div id="loginDiv" class="card">
-    <div class="card-body">
-      <h5 class="card-title">Login to Your Particle Account</h5>
-      <form id="loginForm">
-        <div class="mb-3">
-          <label for="userInput" class="form-label">Username (Email)</label>
-          <input type="text" id="userInput" class="form-control" required/>
-        </div>
-        <div class="mb-3">
-          <label for="passwordInput" class="form-label">Password</label>
-          <input type="password" id="passwordInput" class="form-control" required/>
-        </div>
-        <button type="submit" class="btn btn-primary">Login</button>
-      </form>
-      <div id="loginFailedDiv" class="alert alert-danger mt-3 d-none">Login failed. Please try again.</div>
-    </div>
-  </div>
-
-  <div id="otpDiv" class="card mt-3 d-none">
-    <div class="card-body">
-      <h5 class="card-title">Multi-Factor Authentication</h5>
-      <form id="otpForm">
-        <div class="mb-3">
-          <label for="otpInput" class="form-label">MFA Code</label>
-          <input type="text" id="otpInput" class="form-control" required/>
-        </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
-      </form>
-    </div>
-  </div>
-
-  <div id="devicesPage" class="d-none">
-    <div class="alert alert-info" role="alert">
-      Logged in as: <span id="userSpan"></span>
-    </div>
-    <button id="refreshDevices" class="btn btn-secondary mb-3">Refresh Devices</button>
-    <div id="devicesList" class="row"></div>
-  </div>
-
-  <div id="detailsPage" class="d-none">
-    <button id="backBtn" class="btn btn-secondary mb-3">Back to Devices</button>
-    <div id="deviceDetails"></div>
-  </div>
-</div>
-
-<script>
-  const particle = new Particle();
-  let mfa_token = null;
-
-  const varRanges = {
-    'signal strength': { min: -140, max: -40 },
-    'batt': { min: 0, max: 100 },
-    'status': { min: 0, max: 5 }
-  };
-
-  // LOGIN
-  $('#loginForm').submit(function (e) {
-    e.preventDefault();
-    $('#loginDiv').addClass('d-none');
-    $('#loginFailedDiv').addClass('d-none');
-    sessionStorage.particleUser = $('#userInput').val();
-
-    $.ajax({
-      url: '/.netlify/functions/login',  // direct function path
-      method: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({
-        username: $('#userInput').val(),
-        password: $('#passwordInput').val()
-      }),
-      success: function (data) {
-        loginSuccess(data.access_token);
-      },
-      error: function (jqXHR) {
-        // If MFA required, Particle returns 403 with mfa_token
-        if (jqXHR.status === 403 && jqXHR.responseJSON && jqXHR.responseJSON.mfa_token) {
-          mfa_token = jqXHR.responseJSON.mfa_token;
-          $('#otpDiv').removeClass('d-none');
-          return;
-        }
-        console.error('Login error:', jqXHR);
-        $('#loginDiv').removeClass('d-none');
-        $('#loginFailedDiv').removeClass('d-none');
-      }
-    });
-  });
-
-  // MFA
-  $('#otpForm').submit(function (e) {
-    e.preventDefault();
-    $('#otpDiv').addClass('d-none');
-
-    $.ajax({
-      url: '/.netlify/functions/mfa',  // direct function path
-      method: 'POST',
-      contentType: 'application/json',
-      data: JSON.stringify({
-        mfa_token: mfa_token,
-        otp: $('#otpInput').val()
-      }),
-      success: function (data) {
-        loginSuccess(data.access_token);
-      },
-      error: function (jqXHR) {
-        console.error('MFA error:', jqXHR);
-        $('#loginDiv').removeClass('d-none');
-        $('#loginFailedDiv').removeClass('d-none');
-      }
-    });
-  });
-
-  function loginSuccess(token) {
-    sessionStorage.particleToken = token;
-    $('#loginDiv, #otpDiv').addClass('d-none');
-    $('#devicesPage').removeClass('d-none');
-    $('#logoutBtn').show();
-    $('#userSpan').text(sessionStorage.particleUser);
-    getDevices();
-  }
-
-  function getDevices() {
-    $('#devicesList').html('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-    particle.listDevices({ auth: sessionStorage.particleToken }).then(
-      function (data) {
-        const boronDevices = data.body.filter(dev => dev.platform_id === 13);
-        loadDevicesList(boronDevices);
-      },
-      function (err) {
-        console.error('Error listing devices:', err);
-        alert('Session expired or error. Please log in again.');
-        logout();
-      }
-    );
-  }
-
-  function loadDevicesList(devices) {
-    let html = '';
-    devices.forEach(function (dev) {
-      html += `
-      <div class="col-md-6 col-lg-4">
-        <div class="card device-card">
-          <div class="card-header">
-            <h5 class="card-title mb-0 pointer" onclick="showDetails('${dev.id}')">${dev.name || 'Unnamed'} (ID: ${dev.id})</h5>
-          </div>
-          <div class="card-body">
-            <p>Status: <span class="${dev.online ? 'online' : 'offline'}">${dev.online ? 'Online' : 'Offline'}</span></p>
-            <p>Last Heard: ${dev.last_heard || 'N/A'}</p>
-          </div>
-        </div>
-      </div>`;
-    });
-    $('#devicesList').html(html);
-  }
-
-  function showDetails(deviceId) {
-    $('#devicesPage').addClass('d-none');
-    $('#detailsPage').removeClass('d-none');
-    loadDeviceDetails(deviceId);
-  }
-
-  function loadDeviceDetails(deviceId) {
-    $('#deviceDetails').html('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
-    particle.getDevice({ deviceId: deviceId, auth: sessionStorage.particleToken }).then(
-      function (data) {
-        const dev = data.body;
-        let html = `
-        <div class="card device-card">
-          <div class="card-header">
-            <h5 class="card-title mb-0">${dev.name || 'Unnamed'} (ID: ${dev.id})</h5>
-          </div>
-          <div class="card-body">
-            <p>Status: <span class="${dev.connected ? 'online' : 'offline'}">${dev.connected ? 'Online' : 'Offline'}</span></p>
-            <p>Last Heard: ${dev.last_heard || 'N/A'}</p>
-            <h6>Functions:</h6>
-            <ul id="functions-${dev.id}" class="list-group list-group-flush"></ul>
-            <h6 class="mt-3">Variables:</h6>
-            <ul id="variables-${dev.id}" class="list-group list-group-flush"></ul>
-          </div>
-        </div>`;
-        $('#deviceDetails').html(html);
-
-        let funcHtml = '';
-        (dev.functions || []).forEach(func => {
-          funcHtml += `<li class="list-group-item">
-            ${func}
-            <input type="text" class="form-control function-input" id="arg-${dev.id}-${func}" placeholder="Argument">
-            <button class="btn btn-sm btn-primary" onclick="callFunction('${dev.id}', '${func}')">Call</button>`;
-          if (func.toLowerCase() === 'command') {
-            funcHtml += `
-            <button class="btn btn-sm btn-success ms-2" onclick="callFunctionPreset('${dev.id}', '${func}', 'start')">Start</button>
-            <button class="btn btn-sm btn-danger ms-2" onclick="callFunctionPreset('${dev.id}', '${func}', 'stop')">Stop</button>`;
-          }
-          funcHtml += `<span id="result-${dev.id}-${func}" class="result-span"></span></li>`;
-        });
-        $(`#functions-${dev.id}`).html(funcHtml);
-
-        let varHtml = '';
-        Object.keys(dev.variables || {}).forEach(varName => {
-          const varType = dev.variables[varName];
-          varHtml += `<li class="list-group-item">
-            ${varName}
-            <button class="btn btn-sm btn-info" onclick="getVariable('${dev.id}', '${varName}', '${varType}')">Refresh Value</button>
-            <div id="value-${dev.id}-${varName}" class="result-span"></div>
-          </li>`;
-        });
-        $(`#variables-${dev.id}`).html(varHtml);
-
-        Object.keys(dev.variables || {}).forEach(varName => {
-          const varType = dev.variables[varName];
-          getVariable(dev.id, varName, varType);
-        });
-      },
-      function () {
-        $('#deviceDetails').html('<div class="alert alert-danger">Error loading device details.</div>');
-      }
-    );
-  }
-
-  function callFunction(deviceId, funcName) {
-    const arg = $(`#arg-${deviceId}-${funcName}`).val();
-    const resultSpan = $(`#result-${deviceId}-${funcName}`);
-    resultSpan.text('Calling...');
-    particle.callFunction({ deviceId, name: funcName, argument: arg, auth: sessionStorage.particleToken }).then(
-      data => resultSpan.text(`Result: ${data.body.return_value}`),
-      err => resultSpan.text(`Error: ${err.body.error}`)
-    );
-  }
-
-  function callFunctionPreset(deviceId, funcName, arg) {
-    const resultSpan = $(`#result-${deviceId}-${funcName}`);
-    resultSpan.text('Calling...');
-    particle.callFunction({ deviceId, name: funcName, argument: arg, auth: sessionStorage.particleToken }).then(
-      data => resultSpan.text(`Result: ${data.body.return_value}`),
-      err => resultSpan.text(`Error: ${err.body.error}`)
-    );
-  }
-
-  function getVariable(deviceId, varName, varType) {
-    const valueDiv = $(`#value-${deviceId}-${varName}`);
-    valueDiv.html('Fetching...');
-    particle.getVariable({ deviceId: deviceId, name: varName, auth: sessionStorage.particleToken }).then(
-      function (data) {
-        const value = data.body.result;
-        if (varType === 'int32' || varType === 'double') {
-          const range = varRanges[varName] || { min: 0, max: 100 };
-          let normalized = typeof value === 'number' ? ((value - range.min) / (range.max - range.min)) * 100 : 0;
-          normalized = Math.min(Math.max(normalized, 0), 100);
-          let barClass = normalized >= 50 ? 'bg-success' : (normalized >= 25 ? 'bg-warning' : 'bg-danger');
-          valueDiv.html(`
-            <div class="progress mt-2" style="height: 30px;">
-              <div class="progress-bar ${barClass}" role="progressbar" style="width: ${normalized}%;" aria-valuenow="${normalized}" aria-valuemin="0" aria-valuemax="100">
-                ${value}
-              </div>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Particle Boron Dashboard</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <button id="logoutBtn" class="btn btn-outline-light" style="display: none;">Logout</button>
+                    </li>
+                </ul>
             </div>
-          `);
-        } else {
-          valueDiv.text(`Value: ${value}`);
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div id="loginDiv" class="card">
+            <div class="card-body">
+                <h5 class="card-title">Login to Your Particle Account</h5>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label for="userInput" class="form-label">Username (Email)</label>
+                        <input type="text" class="form-control" id="userInput" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="passwordInput" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="passwordInput" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+                <div id="loginFailedDiv" class="alert alert-danger mt-3 d-none">Login failed. Please try again.</div>
+            </div>
+        </div>
+
+        <div id="otpDiv" class="card mt-3 d-none">
+            <div class="card-body">
+                <h5 class="card-title">Multi-Factor Authentication</h5>
+                <form id="otpForm">
+                    <div class="mb-3">
+                        <label for="otpInput" class="form-label">MFA Code</label>
+                        <input type="text" class="form-control" id="otpInput" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="devicesPage" class="d-none">
+            <div class="alert alert-info" role="alert">
+                Logged in as: <span id="userSpan"></span>
+            </div>
+            <button id="refreshDevices" class="btn btn-secondary mb-3">Refresh Devices</button>
+            <div id="devicesList" class="row"></div>
+        </div>
+
+        <div id="detailsPage" class="d-none">
+            <button id="backBtn" class="btn btn-secondary mb-3">Back to Devices</button>
+            <div id="deviceDetails"></div>
+        </div>
+    </div>
+
+    <script>
+        const particle = new Particle();
+        let mfa_token = null;
+
+        // Custom ranges
+        const varRanges = {
+            'signal strength': { min: -140, max: -40 },
+            'batt': { min: 0, max: 100 },
+            'status': { min: 0, max: 5 }
+        };
+
+        // Handle login form submission
+        $('#loginForm').submit(function (e) {
+            e.preventDefault();
+            $('#loginDiv').addClass('d-none');
+            $('#loginFailedDiv').addClass('d-none');
+            sessionStorage.particleUser = $('#userInput').val();
+
+            $.ajax({
+                url: '/.netlify/functions/login',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    username: $('#userInput').val(),
+                    password: $('#passwordInput').val()
+                }),
+                success: function (data) {
+                    loginSuccess(data.access_token);
+                },
+                error: function (jqXHR) {
+                    if (jqXHR.status === 403 && jqXHR.responseJSON && jqXHR.responseJSON.mfa_token) {
+                        mfa_token = jqXHR.responseJSON.mfa_token;
+                        $('#otpDiv').removeClass('d-none');
+                        return;
+                    }
+                    console.error('Login error:', jqXHR);
+                    $('#loginDiv').removeClass('d-none');
+                    $('#loginFailedDiv').removeClass('d-none');
+                }
+            });
+        });
+
+        // Handle MFA form submission
+        $('#otpForm').submit(function (e) {
+            e.preventDefault();
+            $('#otpDiv').addClass('d-none');
+
+            $.ajax({
+                url: '/.netlify/functions/mfa',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    mfa_token: mfa_token,
+                    otp: $('#otpInput').val()
+                }),
+                success: function (data) {
+                    loginSuccess(data.access_token);
+                },
+                error: function (jqXHR) {
+                    console.error('MFA error:', jqXHR);
+                    $('#loginDiv').removeClass('d-none');
+                    $('#loginFailedDiv').removeClass('d-none');
+                }
+            });
+        });
+
+        // Success callback after login/MFA
+        function loginSuccess(token) {
+            sessionStorage.particleToken = token;
+            $('#loginDiv').addClass('d-none');
+            $('#otpDiv').addClass('d-none');
+            $('#devicesPage').removeClass('d-none');
+            $('#logoutBtn').show();
+            $('#userSpan').text(sessionStorage.particleUser);
+            getDevices();
         }
-      },
-      err => valueDiv.text(`Error: ${err.body.error}`)
-    );
-  }
 
-  $('#refreshDevices').click(getDevices);
-  $('#backBtn').click(() => { $('#detailsPage').addClass('d-none'); $('#devicesPage').removeClass('d-none'); });
-  $('#logoutBtn').click(logout);
+        // Fetch and display Boron devices
+        function getDevices() {
+            $('#devicesList').html('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+            particle.listDevices({ auth: sessionStorage.particleToken }).then(
+                function (data) {
+                    const boronDevices = data.body.filter(dev => dev.platform_id === 13);
+                    loadDevicesList(boronDevices);
+                },
+                function (err) {
+                    console.error('Error listing devices:', err);
+                    alert('Session expired or error. Please log in again.');
+                    logout();
+                }
+            );
+        }
 
-  function logout() {
-    sessionStorage.clear();
-    $('#devicesPage, #detailsPage, #otpDiv').addClass('d-none');
-    $('#loginDiv').removeClass('d-none');
-    $('#logoutBtn').hide();
-  }
+        // Render device list
+        function loadDevicesList(devices) {
+            let html = '';
+            devices.forEach(function (dev) {
+                html += `
+                <div class="col-md-6 col-lg-4">
+                    <div class="card device-card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0 pointer" onclick="showDetails('${dev.id}')">${dev.name || 'Unnamed'} (ID: ${dev.id})</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Status: <span class="${dev.online ? 'online' : 'offline'}">${dev.online ? 'Online' : 'Offline'}</span></p>
+                            <p>Last Heard: ${dev.last_heard || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            $('#devicesList').html(html);
+        }
 
-  if (sessionStorage.particleToken) {
-    loginSuccess(sessionStorage.particleToken);
-  }
-</script>
+        // Show details page
+        function showDetails(deviceId) {
+            $('#devicesPage').addClass('d-none');
+            $('#detailsPage').removeClass('d-none');
+            loadDeviceDetails(deviceId);
+        }
+
+        function loadDeviceDetails(deviceId) {
+            $('#deviceDetails').html('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+            particle.getDevice({ deviceId: deviceId, auth: sessionStorage.particleToken }).then(
+                function (data) {
+                    const dev = data.body;
+                    let html = `
+                    <div class="card device-card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">${dev.name || 'Unnamed'} (ID: ${dev.id})</h5>
+                        </div>
+                        <div class="card-body">
+                            <p>Status: <span class="${dev.connected ? 'online' : 'offline'}">${dev.connected ? 'Online' : 'Offline'}</span></p>
+                            <p>Last Heard: ${dev.last_heard || 'N/A'}</p>
+                            <h6>Functions:</h6>
+                            <ul id="functions-${dev.id}" class="list-group list-group-flush"></ul>
+                            <h6 class="mt-3">Variables:</h6>
+                            <ul id="variables-${dev.id}" class="list-group list-group-flush"></ul>
+                        </div>
+                    </div>`;
+                    $('#deviceDetails').html(html);
+
+                    let funcHtml = '';
+                    (dev.functions || []).forEach(func => {
+                        funcHtml += `<li class="list-group-item">
+                            ${func}
+                            <input type="text" class="form-control function-input" id="arg-${dev.id}-${func}" placeholder="Argument">
+                            <button class="btn btn-sm btn-primary" onclick="callFunction('${dev.id}', '${func}')">Call</button>`;
+                        if (func.toLowerCase() === 'command') {
+                            funcHtml += `
+                            <button class="btn btn-sm btn-success ms-2" onclick="callFunctionPreset('${dev.id}', '${func}', 'start')">Start</button>
+                            <button class="btn btn-sm btn-danger ms-2" onclick="callFunctionPreset('${dev.id}', '${func}', 'stop')">Stop</button>`;
+                        }
+                        funcHtml += `<span id="result-${dev.id}-${func}" class="result-span"></span></li>`;
+                    });
+                    $(`#functions-${dev.id}`).html(funcHtml);
+
+                    let varHtml = '';
+                    Object.keys(dev.variables || {}).forEach(varName => {
+                        const varType = dev.variables[varName];
+                        varHtml += `<li class="list-group-item">
+                            ${varName}
+                            <button class="btn btn-sm btn-info" onclick="getVariable('${dev.id}', '${varName}', '${varType}')">Refresh Value</button>
+                            <div id="value-${dev.id}-${varName}" class="result-span"></div>
+                        </li>`;
+                    });
+                    $(`#variables-${dev.id}`).html(varHtml);
+
+                    Object.keys(dev.variables || {}).forEach(varName => {
+                        const varType = dev.variables[varName];
+                        getVariable(dev.id, varName, varType);
+                    });
+                },
+                function () {
+                    $('#deviceDetails').html('<div class="alert alert-danger">Error loading device details.</div>');
+                }
+            );
+        }
+
+        function callFunction(deviceId, funcName) {
+            const arg = $(`#arg-${deviceId}-${funcName}`).val();
+            const resultSpan = $(`#result-${deviceId}-${funcName}`);
+            resultSpan.text('Calling...');
+            particle.callFunction({ deviceId, name: funcName, argument: arg, auth: sessionStorage.particleToken }).then(
+                data => resultSpan.text(`Result: ${data.body.return_value}`),
+                err => resultSpan.text(`Error: ${err.body.error}`)
+            );
+        }
+
+        function callFunctionPreset(deviceId, funcName, arg) {
+            const resultSpan = $(`#result-${deviceId}-${funcName}`);
+            resultSpan.text('Calling...');
+            particle.callFunction({ deviceId, name: funcName, argument: arg, auth: sessionStorage.particleToken }).then(
+                data => resultSpan.text(`Result: ${data.body.return_value}`),
+                err => resultSpan.text(`Error: ${err.body.error}`)
+            );
+        }
+
+        function getVariable(deviceId, varName, varType) {
+            const valueDiv = $(`#value-${deviceId}-${varName}`);
+            valueDiv.html('Fetching...');
+            particle.getVariable({ deviceId: deviceId, name: varName, auth: sessionStorage.particleToken }).then(
+                function (data) {
+                    const value = data.body.result;
+                    if (varType === 'int32' || varType === 'double') {
+                        const range = varRanges[varName] || { min: 0, max: 100 };
+                        let normalized = typeof value === 'number' ? ((value - range.min) / (range.max - range.min)) * 100 : 0;
+                        normalized = Math.min(Math.max(normalized, 0), 100);
+                        let barClass = normalized >= 50 ? 'bg-success' : (normalized >= 25 ? 'bg-warning' : 'bg-danger');
+                        valueDiv.html(`
+                            <div class="progress mt-2" style="height: 30px;">
+                                <div class="progress-bar ${barClass}" role="progressbar" style="width: ${normalized}%;" aria-valuenow="${normalized}" aria-valuemin="0" aria-valuemax="100">
+                                    ${value}
+                                </div>
+                            </div>
+                        `);
+                    } else {
+                        valueDiv.text(`Value: ${value}`);
+                    }
+                },
+                err => valueDiv.text(`Error: ${err.body.error}`)
+            );
+        }
+
+        $('#refreshDevices').click(getDevices);
+        $('#backBtn').click(() => { $('#detailsPage').addClass('d-none'); $('#devicesPage').removeClass('d-none'); });
+        $('#logoutBtn').click(logout);
+
+        function logout() {
+            sessionStorage.clear();
+            $('#devicesPage, #detailsPage, #otpDiv').addClass('d-none');
+            $('#loginDiv').removeClass('d-none');
+            $('#logoutBtn').hide();
+        }
+
+        if (sessionStorage.particleToken) {
+            loginSuccess(sessionStorage.particleToken);
+        }
+    </script>
 </body>
 </html>
