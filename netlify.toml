@@ -2,7 +2,6 @@
   publish = "."
   functions = "netlify/functions"
 
-# Optional: keep pretty routes if you want to call /login and /mfa from the browser.
 [[redirects]]
   from = "/login"
   to = "/.netlify/functions/login"
@@ -14,3 +13,9 @@
   to = "/.netlify/functions/mfa"
   status = 200
   force = true
+
+# Fallback: serve index.html for all other routes (SPA support)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
