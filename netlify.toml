@@ -1,0 +1,16 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Optional: keep pretty routes if you want to call /login and /mfa from the browser.
+[[redirects]]
+  from = "/login"
+  to = "/.netlify/functions/login"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/mfa"
+  to = "/.netlify/functions/mfa"
+  status = 200
+  force = true
