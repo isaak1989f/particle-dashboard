@@ -189,7 +189,7 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="card device-card">
                         <div class="card-header">
-                            <h5 class="card-title mb-0 pointer" onclick="openControl('${dev.id}', '${(dev.name || 'Unnamed').replace(/'/g, "\\'")}')">${dev.name || 'Unnamed'} (ID: ${dev.id})</h5>
+                            <h5 class="card-title mb-0 pointer"onclick="openControl('${dev.id}', '${(dev.name || 'Unnamed').replace(/'/g, "\\'")}')">${dev.name || 'Unnamed'} (ID: ${dev.id})</h5>
                         </div>
                         <div class="card-body">
                             <p>Status: <span class="${dev.online ? 'online' : 'offline'}">${dev.online ? 'Online' : 'Offline'}</span></p>
@@ -200,17 +200,15 @@
             });
             $('#devicesList').html(html);
         }
-       function openControl(deviceId, deviceName) {
-  // make sure we still have the login token
+function openControl(deviceId, deviceName) {
   if (!sessionStorage.particleToken) {
     alert("Session expired. Please log in again.");
     logout();
     return;
   }
-
-  // go to the new UI page
   window.location.href = `control.html?deviceId=${encodeURIComponent(deviceId)}&name=${encodeURIComponent(deviceName)}`;
 }
+
 
         // Show details page
         function showDetails(deviceId) {
