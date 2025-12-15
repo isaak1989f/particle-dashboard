@@ -200,6 +200,17 @@
             });
             $('#devicesList').html(html);
         }
+       function openControl(deviceId, deviceName) {
+  // make sure we still have the login token
+  if (!sessionStorage.particleToken) {
+    alert("Session expired. Please log in again.");
+    logout();
+    return;
+  }
+
+  // go to the new UI page
+  window.location.href = `control.html?deviceId=${encodeURIComponent(deviceId)}&name=${encodeURIComponent(deviceName)}`;
+}
 
         // Show details page
         function showDetails(deviceId) {
