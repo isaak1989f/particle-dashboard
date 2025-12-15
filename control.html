@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vehicle Control</title>
 
+  <!-- Particle JS (same library you already use) -->
   <script src="https://cdn.jsdelivr.net/npm/particle-api-js@8/dist/particle.min.js"></script>
 
   <style>
@@ -47,7 +48,7 @@
       background: rgba(255,255,255,.08); color:#fff; cursor:pointer;
     }
 
-    .car-area{height: 43%;display:flex;align-items:center;justify-content:center;padding: 8px 20px 0;}
+    .car-area{height: 40%;display:flex;align-items:center;justify-content:center;padding: 8px 20px 0;}
     .car-wrap{
       width:100%;height:100%;display:grid;place-items:center;border-radius:18px;
       background: radial-gradient(800px 300px at 50% 40%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%);
@@ -55,16 +56,45 @@
       text-align:center;
     }
 
-    .status{
-      padding: 4px 22px 0;
-      display:flex; align-items:center; justify-content:space-between;
-      color: var(--muted); font-size: 16px;
+    /* Sensor tiles */
+    .tiles{
+      padding: 12px 18px 0;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
     }
-    .status .item{display:flex;align-items:center;gap:10px;min-width: 90px;}
-    .status .center{justify-content:center;min-width: 80px;text-transform: lowercase;color: var(--muted2);}
+    .tile{
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 12px 12px;
+    }
+    .tile .k{font-size:12px;color:rgba(255,255,255,.55);font-weight:700;letter-spacing:.4px}
+    .tile .v{font-size:20px;font-weight:900;margin-top:6px}
+
+    .centerRow{
+      padding: 10px 18px 0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      color: var(--muted);
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(0,0,0,.28);
+      border: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.75);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing:.5px;
+      text-transform: uppercase;
+    }
+    .pill.online{border-color: rgba(25,211,91,.35); color: rgba(25,211,91,.95)}
+    .pill.offline{border-color: rgba(220,53,69,.35); color: rgba(220,53,69,.95)}
 
     .controls{
-      position:absolute; left:0; right:0; bottom: 56px;
+      position:absolute; left:0; right:0; bottom: 170px;
       padding: 0 26px; display:flex; align-items:center; justify-content:space-between; gap:18px;
     }
     .round{
@@ -79,6 +109,7 @@
       color:#fff; font-size:28px;
     }
     .round:active{transform: scale(.98)}
+
     .engine-wrap{width:128px;height:128px;border-radius:999px;display:grid;place-items:center;position:relative;cursor:pointer;border:none;background:transparent}
     .engine-ring{
       position:absolute; inset:0; border-radius:999px;
@@ -105,9 +136,32 @@
     .engine-sub{margin-top:6px;font-size:11px;font-weight:800;color:rgba(255,255,255,.55);letter-spacing:.8px;}
     .engine-on .engine-sub{color:rgba(25,211,91,.95)}
 
+    /* Toggles section */
+    .toggles{
+      position:absolute;
+      left:0; right:0;
+      bottom: 48px;
+      padding: 0 18px;
+      display:grid;
+      gap:10px;
+    }
+    .toggleRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-weight: 800;
+      letter-spacing:.2px;
+    }
+    .toggleRow small{display:block;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:0;margin-top:3px}
+    .toggleRow input{transform: scale(1.4);}
+
     .toast{
       position:absolute; left:50%; transform:translateX(-50%);
-      bottom: 160px;
+      bottom: 320px;
       padding:10px 12px; border-radius: 12px;
       background: rgba(0,0,0,.55);
       border: 1px solid rgba(255,255,255,.12);
@@ -132,15 +186,34 @@
 
     <div class="car-area">
       <div class="car-wrap">
-        <div style="font-weight:800; margin-bottom:6px;">(vehicle image area)</div>
-        <div style="font-size:12px; color:rgba(255,255,255,.45);">You can drop your van image here later</div>
+        <div style="font-weight:900; margin-bottom:6px;">(your truck image can go here)</div>
+        <div style="font-size:12px; color:rgba(255,255,255,.45);">Long press ENGINE to Start/Stop</div>
       </div>
     </div>
 
-    <div class="status">
-      <div class="item"><div>🔋</div><div id="batText">—</div></div>
-      <div class="item center"><div id="engineStateText">off</div></div>
-      <div class="item" style="justify-content:flex-end"><div>📶</div><div id="sigText">—</div></div>
+    <div class="tiles">
+      <div class="tile">
+        <div class="k">RPM</div>
+        <div class="v" id="rpmEl">--</div>
+      </div>
+      <div class="tile">
+        <div class="k">COOLANT</div>
+        <div class="v" id="tempEl">--</div>
+      </div>
+      <div class="tile">
+        <div class="k">OIL PSI</div>
+        <div class="v" id="oilEl">--</div>
+      </div>
+      <div class="tile">
+        <div class="k">PRO HEAT</div>
+        <div class="v" id="proHeatEl">--</div>
+      </div>
+    </div>
+
+    <div class="centerRow">
+      <div class="pill" id="onlinePill">—</div>
+      <div class="pill" id="enginePill">ENGINE OFF</div>
+      <div class="pill" id="canPill">CAN —</div>
     </div>
 
     <div class="controls">
@@ -152,7 +225,7 @@
           <div class="engine-glow"></div>
           <div class="engine-text">
             ENGINE<br/>START<br/>STOP
-            <div class="engine-sub" id="engineSub">OFF</div>
+            <div class="engine-sub" id="engineSub">HOLD</div>
           </div>
         </div>
       </button>
@@ -161,30 +234,63 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <div class="toggles">
+      <div class="toggleRow">
+        <div>
+          Idle Up
+          <small>Send Command("idleUp")</small>
+        </div>
+        <input type="checkbox" id="idleUpToggle">
+      </div>
+
+      <div class="toggleRow">
+        <div>
+          Pro Heat
+          <small>Command("proHeattrue") / Command("proHeatfalse")</small>
+        </div>
+        <input type="checkbox" id="proHeatToggle">
+      </div>
+    </div>
   </div>
 
 <script>
+  // --- Particle + routing
   const particle = new Particle();
 
   const qs = new URLSearchParams(location.search);
   const deviceId = qs.get("deviceId");
   const deviceName = qs.get("name") || "Device";
-  const token = sessionStorage.particleToken;
+  const token = sessionStorage.particleToken; // keeps your current system
 
+  // --- UI refs
   const titleEl = document.getElementById("title");
   const subEl = document.getElementById("sub");
   const toastEl = document.getElementById("toast");
 
-  const batText = document.getElementById("batText");
-  const sigText = document.getElementById("sigText");
-  const engineStateText = document.getElementById("engineStateText");
+  const rpmEl = document.getElementById("rpmEl");
+  const tempEl = document.getElementById("tempEl");
+  const oilEl = document.getElementById("oilEl");
+  const proHeatEl = document.getElementById("proHeatEl");
+
+  const onlinePill = document.getElementById("onlinePill");
+  const enginePill = document.getElementById("enginePill");
+  const canPill = document.getElementById("canPill");
+
+  const engineBtn = document.getElementById("engineBtn");
   const engineInner = document.getElementById("engineInner");
   const engineSub = document.getElementById("engineSub");
 
-  let engineOn = false;
+  const idleUpToggle = document.getElementById("idleUpToggle");
+  const proHeatToggle = document.getElementById("proHeatToggle");
+
+  // --- state
+  let currentRPM = 0;
+  let longPressMs = 800;
+  let pressTimer = null;
+  let lastProHeat = null;
 
   titleEl.textContent = deviceName;
-
   document.getElementById("backBtn").onclick = () => history.back();
 
   function toast(msg, ms=2200){
@@ -194,11 +300,34 @@
     toast._t = setTimeout(()=>toastEl.style.display="none", ms);
   }
 
-  function setEngineUI(on){
-    engineOn = !!on;
-    engineStateText.textContent = engineOn ? "on" : "off";
-    engineSub.textContent = engineOn ? "ON" : "OFF";
-    engineInner.classList.toggle("engine-on", engineOn);
+  function setEngineUI(rpm){
+    const on = (rpm > 0);
+    engineInner.classList.toggle("engine-on", on);
+    enginePill.textContent = on ? "ENGINE ON" : "ENGINE OFF";
+    engineSub.textContent = "HOLD";
+  }
+
+  function setOnlineUI(connected){
+    onlinePill.textContent = connected ? "ONLINE" : "OFFLINE";
+    onlinePill.classList.toggle("online", !!connected);
+    onlinePill.classList.toggle("offline", !connected);
+  }
+
+  // Your firmware format: {:temp:185:oilPsi:42:rpm:650:proheatStatus:1:}
+  function parseSensorJson(str) {
+    const out = {};
+    if (!str) return out;
+
+    const cleaned = String(str).replace(/[{}]/g, "");  // ":temp:185:oilPsi:..."
+    const parts = cleaned.split(":").filter(p => p.length); // remove empty items
+
+    // parts example: ["temp","185","oilPsi","42","rpm","650","proheatStatus","1"]
+    for (let i = 0; i < parts.length - 1; i += 2) {
+      const key = parts[i];
+      const val = Number(parts[i + 1]);
+      if (!Number.isNaN(val)) out[key] = val;
+    }
+    return out;
   }
 
   async function refreshStatus(){
@@ -206,58 +335,114 @@
     if (!deviceId) { subEl.textContent = "Missing deviceId"; return; }
 
     try {
-      const d = await particle.getDevice({ deviceId, auth: token });
-      subEl.textContent = d.body.connected ? "online" : "offline";
+      // Device connectivity
+      const dev = await particle.getDevice({ deviceId, auth: token });
+      const connected = !!dev.body.connected;
+      subEl.textContent = connected ? "Connected" : "Offline";
+      setOnlineUI(connected);
 
-      // Optional: if you want, you can show battery/signal from your existing variables:
-      // - you have deviceSensorJson, coolant_temp, oil_pressure, engine RPM, J1939Speed, etc.
-      // Here’s an example reading the Json var:
+      // CANstate (optional, you expose it)
       try {
-        const v = await particle.getVariable({ deviceId, name: "deviceSensorJson", auth: token });
-        // your string format is like {:temp:123:oilPsi:45:rpm:600:proheatStatus:0:}
-        const s = String(v.body.result || "");
-        const rpmMatch = s.match(/:rpm:(\d+)/);
-        if (rpmMatch) setEngineUI(parseInt(rpmMatch[1],10) >= 400);
-      } catch {}
+        const can = await particle.getVariable({ deviceId, name: "CANstate", auth: token });
+        const canVal = Number(can.body.result);
+        canPill.textContent = (canVal === 1) ? "CAN OK" : "CAN OFF";
+      } catch {
+        canPill.textContent = "CAN —";
+      }
 
-      // You don’t currently have a batt/signal variable in firmware, so these are placeholders:
-      batText.textContent = "—";
-      sigText.textContent = "—";
+      // Sensor JSON
+      const v = await particle.getVariable({ deviceId, name: "deviceSensorJson", auth: token });
+      const data = parseSensorJson(v.body.result);
+
+      // Update fields
+      currentRPM = data.rpm ?? 0;
+
+      rpmEl.textContent = `${currentRPM} rpm`;
+      tempEl.textContent = (data.temp != null) ? `${data.temp} °F` : "--";
+      oilEl.textContent = (data.oilPsi != null) ? `${data.oilPsi} psi` : "--";
+
+      const ph = (data.proheatStatus != null) ? Number(data.proheatStatus) : null;
+      if (ph === 1) proHeatEl.textContent = "ON";
+      else if (ph === 0) proHeatEl.textContent = "OFF";
+      else proHeatEl.textContent = "--";
+
+      setEngineUI(currentRPM);
+
+      // Keep ProHeat toggle synced to device (but avoid fighting user)
+      if (ph !== null && ph !== lastProHeat) {
+        proHeatToggle.checked = (ph === 1);
+        lastProHeat = ph;
+      }
 
     } catch (e) {
-      subEl.textContent = "error";
-      toast("Status error. Try going back + re-login.", 2800);
+      subEl.textContent = "Status error";
+      // don’t spam toast every interval; show only once if needed
+      // toast("Status error. Go back + re-login if needed.", 3000);
     }
   }
 
-  // ENGINE: call your existing Particle.function "Command" with arg "start"
-  document.getElementById("engineBtn").onclick = async () => {
+  async function sendCommand(cmd) {
     if (!token) return toast("Not logged in.");
     if (!deviceId) return toast("Missing deviceId.");
 
-    toast("Sending START…");
+    toast(`Sending ${cmd}…`);
     try {
       const resp = await particle.callFunction({
         deviceId,
-        name: "Command",      // <-- matches your firmware
-        argument: "start",    // <-- triggers start branch
+        name: "Command",     // matches your firmware
+        argument: cmd,
         auth: token
       });
-
-      toast("START sent ✅ return_value: " + (resp.body.return_value ?? "—"));
-      setEngineUI(true);
-
+      toast(`${cmd} sent ✅ (rv:${resp.body.return_value ?? "—"})`);
+      // refresh quickly after sending
+      setTimeout(refreshStatus, 1200);
     } catch (e) {
-      toast("START failed: " + (e?.body?.error || e.message || "unknown"), 3200);
+      toast(`${cmd} failed: ${e?.body?.error || e.message || "unknown"}`, 3200);
+    }
+  }
+
+  // --- LONG PRESS Engine: start if rpm==0, stop if rpm>0
+  function startPress(e) {
+    e.preventDefault();
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(async () => {
+      const cmd = (currentRPM > 0) ? "stop" : "start";
+      await sendCommand(cmd);
+    }, longPressMs);
+  }
+
+  function cancelPress() {
+    clearTimeout(pressTimer);
+  }
+
+  engineBtn.addEventListener("mousedown", startPress);
+  engineBtn.addEventListener("touchstart", startPress, { passive: false });
+
+  engineBtn.addEventListener("mouseup", cancelPress);
+  engineBtn.addEventListener("mouseleave", cancelPress);
+  engineBtn.addEventListener("touchend", cancelPress);
+
+  // --- Toggles
+  idleUpToggle.onchange = () => {
+    if (idleUpToggle.checked) {
+      sendCommand("idleUp");
+      // auto-reset switch to off (since idleUp is an action, not a state)
+      setTimeout(()=> idleUpToggle.checked = false, 300);
     }
   };
 
-  // Optional: wire these too (same function, different args)
-  document.getElementById("lockBtn").onclick = () => toast("Lock (wire me if needed)");
-  document.getElementById("unlockBtn").onclick = () => toast("Unlock (wire me if needed)");
+  proHeatToggle.onchange = () => {
+    sendCommand(proHeatToggle.checked ? "proHeattrue" : "proHeatfalse");
+    // device will report proheatStatus; refresh will sync UI
+  };
 
+  // Optional placeholders for lock/unlock (only if your firmware supports it later)
+  document.getElementById("lockBtn").onclick = () => toast("Lock (not wired yet)");
+  document.getElementById("unlockBtn").onclick = () => toast("Unlock (not wired yet)");
+
+  // Start
   refreshStatus();
-  setInterval(refreshStatus, 10000);
+  setInterval(refreshStatus, 5000);
 </script>
 </body>
 </html>
