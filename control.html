@@ -92,6 +92,12 @@
     }
     .pill.online{border-color: rgba(25,211,91,.35); color: rgba(25,211,91,.95)}
     .pill.offline{border-color: rgba(220,53,69,.35); color: rgba(220,53,69,.95)}
+     /* CAN status */
+    .pill.can-ok {border-color: rgba(25,211,91,.35);color: rgba(25,211,91,.95);}
+    .pill.can-off {border-color: rgba(220,53,69,.35);color: rgba(220,53,69,.95);}
+    /* Engine status */
+    .pill.engine-on {border-color: rgba(25,211,91,.35);color: rgba(25,211,91,.95);}
+    .pill.engine-off {border-color: rgba(255,255,255,.25);color: rgba(255,255,255,.75);}
 
     .controls{
       position:absolute; left:0; right:0; bottom: 200px;
@@ -294,11 +300,25 @@
   }
 
   function setEngineUI(rpm){
-    const on = (rpm > 0);
-    engineInner.classList.toggle("engine-on", on);
-    enginePill.textContent = on ? "ENGINE ON" : "ENGINE OFF";
-    engineSub.textContent = "HOLD";
-  }
+  const on = (rpm > 0);
+
+  // Glow animation
+  engineInner.classList.toggle("engine-on", on);
+
+  // Text
+  enginePill.textContent = on ? "ENGINE ON" : "ENGINE OFF";
+  engineSub.textContent = "HOLD";
+
+  // Pill color
+  enginePill.classList.toggle("engine-on", on);
+  enginePill.classList.toggle("engine-off", !on);
+}
+
+  function setCanUI(canOk){
+  canPill.textContent = canOk ? "CAN OK" : "CAN OFF";
+  canPill.classList.toggle("can-ok", !!canOk);
+  canPill.classList.toggle("can-off", !canOk);
+}
 
   function setOnlineUI(connected){
     onlinePill.textContent = connected ? "ONLINE" : "OFFLINE";
@@ -335,13 +355,15 @@
       setOnlineUI(connected);
 
       // CANstate (optional, you expose it)
-      try {
-        const can = await particle.getVariable({ deviceId, name: "CANstate", auth: token });
-        const canVal = Number(can.body.result);
-        canPill.textContent = (canVal === 1) ? "CAN OK" : "CAN OFF";
-      } catch {
-        canPill.textContent = "CAN —";
-      }
+     try {
+  const can = await particle.getVariable({ deviceId, name: "CANstate", auth: token });
+  const canVal = Number(can.body.result);
+  setCanUI(canVal === 1);
+} catch {
+  canPill.textContent = "CAN —";
+  canPill.classList.remove("can-ok", "can-off");
+}
+
 
       // Sensor JSON
       const v = await particle.getVariable({ deviceId, name: "deviceSensorJson", auth: token });
