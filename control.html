@@ -355,33 +355,12 @@
       setOnlineUI(connected);
 
       // CANstate (optional, you expose it)
-       let canOk = null;
-
-try {
-  const can = await particle.getVariable({
-    deviceId,
-    name: "CANstate",
-    auth: token
-  });
-
-  const raw = can?.body?.result;
-  const canVal = Number(raw);
-
-  if (!Number.isNaN(canVal)) {
-    canOk = (canVal === 1);
-  }
-} catch (e) {
-  console.warn("CANstate unavailable:", e?.body?.error || e.message);
-}
-
-// Apply UI state
-if (canOk === true) {
-  setCanUI(true);
-} else if (canOk === false) {
-  setCanUI(false);
-} else {
+     try {
+  const can = await particle.getVariable({ deviceId, name: "CANstate", auth: token });
+  const canVal = Number(can.body.result);
+  canPill.textContent = (canVal === 1) ? "CAN OK" : "CAN OFF";
+} catch {
   canPill.textContent = "CAN —";
-  canPill.classList.remove("can-ok", "can-off");
 }
 
 
