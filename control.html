@@ -106,7 +106,7 @@
       cursor:pointer;
       transition: transform .08s ease, background .15s ease;
       user-select:none;
-      color:#fff; font-size:28px;
+      color:#fff; font-size:10px;
     }
     .round:active{transform: scale(.98)}
 
@@ -153,7 +153,7 @@
       border: 1px solid rgba(255,255,255,.10);
       border-radius: 14px;
       padding: 12px 14px;
-      font-weight: 800;
+      font-weight: 500;
       letter-spacing:.2px;
     }
     .toggleRow small{display:block;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:0;margin-top:3px}
@@ -212,8 +212,8 @@
     </div>
 
     <div class="controls">
-      <button class="round" id="unlockBtn" title="Unlock">🔓</button>
-
+      <button class="round" id="unlockBtn" title="Unlock">UNLOCK</button>
+       
       <button class="engine-wrap" id="engineBtn" aria-label="Engine start stop">
         <div class="engine-ring"></div>
         <div class="engine-inner" id="engineInner">
@@ -225,7 +225,7 @@
         </div>
       </button>
 
-      <button class="round" id="lockBtn" title="Lock">🔒</button>
+      <button class="round" id="lockBtn" title="Lock">LOCK</button>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -234,7 +234,6 @@
       <div class="toggleRow">
         <div>
           Idle Up
-          <small>Send Command("idleUp")</small>
         </div>
         <input type="checkbox" id="idleUpToggle">
       </div>
@@ -242,7 +241,6 @@
       <div class="toggleRow">
         <div>
           Pro Heat
-          <small>Command("proHeattrue") / Command("proHeatfalse")</small>
         </div>
         <input type="checkbox" id="proHeatToggle">
       </div>
