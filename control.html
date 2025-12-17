@@ -48,14 +48,6 @@
       background: rgba(255,255,255,.08); color:#fff; cursor:pointer;
     }
 
-    .car-area{height: 40%;display:flex;align-items:center;justify-content:center;padding: 8px 20px 0;}
-    .car-wrap{
-      width:100%;height:100%;display:grid;place-items:center;border-radius:18px;
-      background: radial-gradient(800px 300px at 50% 40%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%);
-      color: rgba(255,255,255,.55);
-      text-align:center;
-    }
-
     /* Sensor tiles */
     .tiles{
       padding: 12px 18px 0;
@@ -92,9 +84,11 @@
     }
     .pill.online{border-color: rgba(25,211,91,.35); color: rgba(25,211,91,.95)}
     .pill.offline{border-color: rgba(220,53,69,.35); color: rgba(220,53,69,.95)}
-     /* CAN status */
+
+    /* CAN status */
     .pill.can-ok {border-color: rgba(25,211,91,.35);color: rgba(25,211,91,.95);}
     .pill.can-off {border-color: rgba(220,53,69,.35);color: rgba(220,53,69,.95);}
+
     /* Engine status */
     .pill.engine-on {border-color: rgba(25,211,91,.35);color: rgba(25,211,91,.95);}
     .pill.engine-off {border-color: rgba(255,255,255,.25);color: rgba(255,255,255,.75);}
@@ -103,6 +97,7 @@
       position:absolute; left:0; right:0; bottom: 200px;
       padding: 0 26px; display:flex; align-items:center; justify-content:space-between; gap:18px;
     }
+
     .round{
       width: 86px; height: 86px; border-radius: 999px;
       background: rgba(255,255,255,.08);
@@ -110,11 +105,30 @@
       box-shadow: 0 10px 20px rgba(0,0,0,.25);
       display:grid; place-items:center;
       cursor:pointer;
-      transition: transform .08s ease, background .15s ease;
+      transition: transform .08s ease, background .15s ease, opacity .15s ease;
       user-select:none;
       color:#fff; font-size:10px;
     }
     .round:active{transform: scale(.98)}
+
+    /* Pressed + sending animation (for round buttons) */
+    .round.pressed{
+      transform: scale(0.94);
+      background: rgba(25,211,91,.25);
+      border-color: rgba(25,211,91,.45);
+      box-shadow: 0 4px 10px rgba(0,0,0,.35) inset;
+    }
+    .round.sending{
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    /* Disabled state (offline lock) */
+    .disabled-ui{
+      opacity: 0.45 !important;
+      pointer-events: none !important;
+      filter: grayscale(0.25);
+    }
 
     .engine-wrap{width:128px;height:128px;border-radius:999px;display:grid;place-items:center;position:relative;cursor:pointer;border:none;background:transparent}
     .engine-ring{
@@ -126,11 +140,32 @@
       box-shadow: 0 14px 30px rgba(0,0,0,.35);
       border: 1px solid rgba(255,255,255,.10);
     }
+
+    /* Spinner ring (hidden by default) */
+    .engine-spinner{
+      position:absolute;
+      inset:-6px;
+      border-radius:999px;
+      border: 3px solid rgba(255,255,255,.10);
+      border-top-color: rgba(25,211,91,.90);
+      opacity: 0;
+      transition: opacity .15s ease;
+      pointer-events:none;
+      animation: spin 0.9s linear infinite;
+    }
+    .engine-wrap.cranking .engine-spinner{ opacity: 1; }
+
+    @keyframes spin{
+      from{ transform: rotate(0deg); }
+      to{ transform: rotate(360deg); }
+    }
+
     .engine-inner{
       width: 102px; height: 102px; border-radius:999px;
       background: rgba(0,0,0,.40);
       border: 1px solid rgba(255,255,255,.10);
       display:grid; place-items:center; position:relative; overflow:hidden;
+      transition: transform .10s ease, filter .10s ease;
     }
     .engine-glow{
       position:absolute; inset:-12px;
@@ -141,6 +176,12 @@
     .engine-text{position:relative;text-align:center;font-weight:900;letter-spacing:.5px;line-height:1.05;font-size:14px;}
     .engine-sub{margin-top:6px;font-size:11px;font-weight:800;color:rgba(255,255,255,.55);letter-spacing:.8px;}
     .engine-on .engine-sub{color:rgba(25,211,91,.95)}
+
+    /* Engine long-press visual feedback */
+    .engine-pressing{
+      transform: scale(0.96);
+      filter: brightness(1.2);
+    }
 
     /* Toggles section */
     .toggles{
@@ -162,7 +203,6 @@
       font-weight: 500;
       letter-spacing:.2px;
     }
-    .toggleRow small{display:block;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:0;margin-top:3px}
     .toggleRow input{transform: scale(1.4);}
 
     .toast{
@@ -208,19 +248,18 @@
         <div class="v" id="proHeatEl">--</div>
       </div>
     </div>
-    
 
     <div class="centerRow">
       <div class="pill" id="onlinePill">—</div>
-      <div class="pill" id="enginePill">ENGINE OFF</div>
+      <div class="pill engine-off" id="enginePill">ENGINE OFF</div>
       <div class="pill" id="canPill">CAN —</div>
-      
     </div>
 
     <div class="controls">
-      <button class="round" id="idleUpBtn" title="Unlock">IDLEUP</button>
-       
+      <button class="round" id="idleUpBtn">IDLEUP</button>
+
       <button class="engine-wrap" id="engineBtn" aria-label="Engine start stop">
+        <div class="engine-spinner" id="engineSpinner"></div>
         <div class="engine-ring"></div>
         <div class="engine-inner" id="engineInner">
           <div class="engine-glow"></div>
@@ -231,38 +270,33 @@
         </div>
       </button>
 
-      <button class="round" id="refreshBtn" title="Lock">REFRESH</button>
+      <button class="round" id="refreshBtn">REFRESH</button>
     </div>
 
     <div class="toast" id="toast"></div>
 
     <div class="toggles">
-      <div class="toggleRow">
-        <div>
-          Idle Up
-        </div>
+      <div class="toggleRow" id="idleUpRow">
+        <div>Idle Up</div>
         <input type="checkbox" id="idleUpToggle">
       </div>
 
-      <div class="toggleRow">
-        <div>
-          Pro Heat
-        </div>
+      <div class="toggleRow" id="proHeatRow">
+        <div>Pro Heat</div>
         <input type="checkbox" id="proHeatToggle">
       </div>
     </div>
   </div>
 
 <script>
-  // --- Particle + routing
   const particle = new Particle();
 
   const qs = new URLSearchParams(location.search);
   const deviceId = qs.get("deviceId");
   const deviceName = qs.get("name") || "Device";
-  const token = sessionStorage.particleToken; // keeps your current system
+  const token = sessionStorage.particleToken;
 
-  // --- UI refs
+  // UI refs
   const titleEl = document.getElementById("title");
   const subEl = document.getElementById("sub");
   const toastEl = document.getElementById("toast");
@@ -283,11 +317,16 @@
   const idleUpToggle = document.getElementById("idleUpToggle");
   const proHeatToggle = document.getElementById("proHeatToggle");
 
-  // --- state
+  const idleUpBtn = document.getElementById("idleUpBtn");
+  const refreshBtn = document.getElementById("refreshBtn");
+
+  // state
   let currentRPM = 0;
   let longPressMs = 800;
   let pressTimer = null;
   let lastProHeat = null;
+  let isConnected = false;
+  let isCranking = false;
 
   titleEl.textContent = deviceName;
   document.getElementById("backBtn").onclick = () => history.back();
@@ -299,26 +338,49 @@
     toast._t = setTimeout(()=>toastEl.style.display="none", ms);
   }
 
+  // Haptic vibration (mobile)
+  function haptic(ms=25){
+    if (navigator.vibrate) navigator.vibrate(ms);
+  }
+
+  // Press helpers for round buttons
+  function pressBtn(btn) {
+    btn.classList.add("pressed", "sending");
+  }
+  function releaseBtn(btn, delay = 600) {
+    setTimeout(() => btn.classList.remove("pressed", "sending"), delay);
+  }
+
+  // Lock UI when offline
+  function setControlsEnabled(enabled){
+    const els = [idleUpBtn, refreshBtn, engineBtn, idleUpToggle, proHeatToggle];
+    els.forEach(el => {
+      if (!el) return;
+      el.classList.toggle("disabled-ui", !enabled);
+      if (el.tagName === "INPUT" || el.tagName === "BUTTON") {
+        el.disabled = !enabled;
+      }
+      // engineBtn is a button; ok to disable
+    });
+  }
+
   function setEngineUI(rpm){
-  const on = (rpm > 0);
+    const on = (rpm > 0);
 
-  // Glow animation
-  engineInner.classList.toggle("engine-on", on);
+    engineInner.classList.toggle("engine-on", on);
 
-  // Text
-  enginePill.textContent = on ? "ENGINE ON" : "ENGINE OFF";
-  engineSub.textContent = "HOLD";
+    enginePill.textContent = on ? "ENGINE ON" : "ENGINE OFF";
+    engineSub.textContent = isCranking ? "CRANKING" : "HOLD";
 
-  // Pill color
-  enginePill.classList.toggle("engine-on", on);
-  enginePill.classList.toggle("engine-off", !on);
-}
+    enginePill.classList.toggle("engine-on", on);
+    enginePill.classList.toggle("engine-off", !on);
+  }
 
   function setCanUI(canOk){
-  canPill.textContent = canOk ? "CAN OK" : "CAN OFF";
-  canPill.classList.toggle("can-ok", !!canOk);
-  canPill.classList.toggle("can-off", !canOk);
-}
+    canPill.textContent = canOk ? "CAN OK" : "CAN OFF";
+    canPill.classList.toggle("can-ok", !!canOk);
+    canPill.classList.toggle("can-off", !canOk);
+  }
 
   function setOnlineUI(connected){
     onlinePill.textContent = connected ? "ONLINE" : "OFFLINE";
@@ -326,15 +388,20 @@
     onlinePill.classList.toggle("offline", !connected);
   }
 
-  // Your firmware format: {:temp:185:oilPsi:42:rpm:650:proheatStatus:1:}
+  function setCrankingUI(on){
+    isCranking = on;
+    engineBtn.classList.toggle("cranking", on);
+    setEngineUI(currentRPM);
+  }
+
+  // Firmware format: {:temp:185:oilPsi:42:rpm:650:proheatStatus:1:}
   function parseSensorJson(str) {
     const out = {};
     if (!str) return out;
 
-    const cleaned = String(str).replace(/[{}]/g, "");  // ":temp:185:oilPsi:..."
-    const parts = cleaned.split(":").filter(p => p.length); // remove empty items
+    const cleaned = String(str).replace(/[{}]/g, "");
+    const parts = cleaned.split(":").filter(p => p.length);
 
-    // parts example: ["temp","185","oilPsi","42","rpm","650","proheatStatus","1"]
     for (let i = 0; i < parts.length - 1; i += 2) {
       const key = parts[i];
       const val = Number(parts[i + 1]);
@@ -344,93 +411,130 @@
   }
 
   async function refreshStatus(){
-    if (!token) { subEl.textContent = "Not logged in"; return; }
-    if (!deviceId) { subEl.textContent = "Missing deviceId"; return; }
+    if (!token) { subEl.textContent = "Not logged in"; setControlsEnabled(false); return; }
+    if (!deviceId) { subEl.textContent = "Missing deviceId"; setControlsEnabled(false); return; }
 
     try {
-      // Device connectivity
       const dev = await particle.getDevice({ deviceId, auth: token });
-      const connected = !!dev.body.connected;
-      subEl.textContent = connected ? "Connected" : "Offline";
-      setOnlineUI(connected);
+      isConnected = !!dev.body.connected;
 
-// CANstate (optional, you expose it)
-     try {
-  const can = await particle.getVariable({ deviceId, name: "CANstate", auth: token });
-  const canVal = Number(can.body.result);
-  setCanUI(canVal === 1);
-} catch {
-  canPill.textContent = "CAN —";
-  canPill.classList.remove("can-ok", "can-off");
-}
+      subEl.textContent = isConnected ? "Connected" : "Offline";
+      setOnlineUI(isConnected);
+      setControlsEnabled(isConnected);
 
+      // CANstate
+      if (isConnected) {
+        try {
+          const can = await particle.getVariable({ deviceId, name: "CANstate", auth: token });
+          const canVal = Number(can.body.result);
+          if (!Number.isNaN(canVal)) setCanUI(canVal === 1);
+          else {
+            canPill.textContent = "CAN —";
+            canPill.classList.remove("can-ok", "can-off");
+          }
+        } catch {
+          canPill.textContent = "CAN —";
+          canPill.classList.remove("can-ok", "can-off");
+        }
+      } else {
+        canPill.textContent = "CAN —";
+        canPill.classList.remove("can-ok", "can-off");
+      }
 
+      // Sensor JSON (only if connected)
+      if (isConnected) {
+        const v = await particle.getVariable({ deviceId, name: "deviceSensorJson", auth: token });
+        const data = parseSensorJson(v.body.result);
 
+        currentRPM = data.rpm ?? 0;
 
+        rpmEl.textContent = `${currentRPM} rpm`;
+        tempEl.textContent = (data.temp != null) ? `${data.temp} °F` : "--";
+        oilEl.textContent = (data.oilPsi != null) ? `${data.oilPsi} psi` : "--";
 
-      // Sensor JSON
-      const v = await particle.getVariable({ deviceId, name: "deviceSensorJson", auth: token });
-      const data = parseSensorJson(v.body.result);
+        const ph = (data.proheatStatus != null) ? Number(data.proheatStatus) : null;
+        if (ph === 1) proHeatEl.textContent = "ON";
+        else if (ph === 0) proHeatEl.textContent = "OFF";
+        else proHeatEl.textContent = "--";
 
-      // Update fields
-      currentRPM = data.rpm ?? 0;
+        setEngineUI(currentRPM);
 
-      rpmEl.textContent = `${currentRPM} rpm`;
-      tempEl.textContent = (data.temp != null) ? `${data.temp} °F` : "--";
-      oilEl.textContent = (data.oilPsi != null) ? `${data.oilPsi} psi` : "--";
-
-      const ph = (data.proheatStatus != null) ? Number(data.proheatStatus) : null;
-      if (ph === 1) proHeatEl.textContent = "ON";
-      else if (ph === 0) proHeatEl.textContent = "OFF";
-      else proHeatEl.textContent = "--";
-
-      setEngineUI(currentRPM);
-
-      // Keep ProHeat toggle synced to device (but avoid fighting user)
-      if (ph !== null && ph !== lastProHeat) {
-        proHeatToggle.checked = (ph === 1);
-        lastProHeat = ph;
+        if (ph !== null && ph !== lastProHeat) {
+          proHeatToggle.checked = (ph === 1);
+          lastProHeat = ph;
+        }
+      } else {
+        rpmEl.textContent = "--";
+        tempEl.textContent = "--";
+        oilEl.textContent = "--";
+        proHeatEl.textContent = "--";
+        currentRPM = 0;
+        setEngineUI(0);
       }
 
     } catch (e) {
       subEl.textContent = "Status error";
-      // don’t spam toast every interval; show only once if needed
-      // toast("Status error. Go back + re-login if needed.", 3000);
+      setControlsEnabled(false);
     }
   }
 
-  async function sendCommand(cmd) {
-    if (!token) return toast("Not logged in.");
-    if (!deviceId) return toast("Missing deviceId.");
+  async function sendCommand(cmd, opts = {}) {
+    const { showToast = true, haptics = true } = opts;
 
-    toast(`Sending ${cmd}…`);
+    if (!token) { toast("Not logged in."); return false; }
+    if (!deviceId) { toast("Missing deviceId."); return false; }
+    if (!isConnected) { toast("Device is offline."); return false; }
+
+    if (haptics) haptic(20);
+    if (showToast) toast(`Sending ${cmd}…`);
+
     try {
       const resp = await particle.callFunction({
         deviceId,
-        name: "Command",     // matches your firmware
+        name: "Command",
         argument: cmd,
         auth: token
       });
-      toast(`${cmd} sent ✅ (rv:${resp.body.return_value ?? "—"})`);
-      // refresh quickly after sending
+
+      if (haptics) haptic(35);
+      if (showToast) toast(`${cmd} sent ✅ (rv:${resp.body.return_value ?? "—"})`);
+
       setTimeout(refreshStatus, 1200);
+      return true;
     } catch (e) {
+      if (haptics) haptic([20, 40, 20]);
       toast(`${cmd} failed: ${e?.body?.error || e.message || "unknown"}`, 3200);
+      return false;
     }
   }
 
-  // --- LONG PRESS Engine: start if rpm==0, stop if rpm>0
+  // Engine long press: start if rpm==0 else stop
   function startPress(e) {
     e.preventDefault();
+    if (!isConnected) return;
+
+    haptic(10);
+    engineInner.classList.add("engine-pressing");
+
     clearTimeout(pressTimer);
     pressTimer = setTimeout(async () => {
       const cmd = (currentRPM > 0) ? "stop" : "start";
-      await sendCommand(cmd);
+
+      // show spinner during start/stop attempt (especially start)
+      setCrankingUI(true);
+
+      await sendCommand(cmd, { showToast: true, haptics: true });
+
+      // turn spinner off after a short delay (status refresh will also update)
+      setTimeout(() => setCrankingUI(false), 2200);
+
+      engineInner.classList.remove("engine-pressing");
     }, longPressMs);
   }
 
   function cancelPress() {
     clearTimeout(pressTimer);
+    engineInner.classList.remove("engine-pressing");
   }
 
   engineBtn.addEventListener("mousedown", startPress);
@@ -440,24 +544,37 @@
   engineBtn.addEventListener("mouseleave", cancelPress);
   engineBtn.addEventListener("touchend", cancelPress);
 
-  // --- Toggles
-  idleUpToggle.onchange = () => {
+  // Toggles
+  idleUpToggle.onchange = async () => {
+    if (!isConnected) { idleUpToggle.checked = false; return; }
     if (idleUpToggle.checked) {
-      sendCommand("idleUp");
-      // auto-reset switch to off (since idleUp is an action, not a state)
-      setTimeout(()=> idleUpToggle.checked = false, 300);
+      await sendCommand("idleUp");
+      setTimeout(()=> idleUpToggle.checked = false, 250);
     }
   };
 
-  proHeatToggle.onchange = () => {
-    sendCommand(proHeatToggle.checked ? "proHeattrue" : "proHeatfalse");
-    // device will report proheatStatus; refresh will sync UI
+  proHeatToggle.onchange = async () => {
+    if (!isConnected) { proHeatToggle.checked = !!lastProHeat; return; }
+    await sendCommand(proHeatToggle.checked ? "proHeattrue" : "proHeatfalse");
   };
 
-document.getElementById("idleUpBtn").onclick = () => sendCommand("idleUp");
-document.getElementById("refreshBtn").onclick = () => sendCommand("ingOn");
+  // Round buttons with pressed animation + disable while sending
+  idleUpBtn.onclick = async () => {
+    if (!isConnected) return toast("Device is offline.");
+    pressBtn(idleUpBtn);
+    await sendCommand("idleUp");
+    releaseBtn(idleUpBtn);
+  };
+
+  refreshBtn.onclick = async () => {
+    if (!isConnected) return toast("Device is offline.");
+    pressBtn(refreshBtn);
+    await sendCommand("ingOn");
+    releaseBtn(refreshBtn);
+  };
 
   // Start
+  setControlsEnabled(false);
   refreshStatus();
   setInterval(refreshStatus, 5000);
 </script>
