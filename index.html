@@ -225,7 +225,7 @@ function openControl(deviceId, deviceName) {
                     let html = `
                     <div class="card device-card">
                         <div class="card-header">
-                            <h5 class="card-title mb-0">${dev.name || 'Unnamed'} (ID: ${dev.id})</h5>
+                            <h5 class="card-title mb-0">${dev.name || 'Unnamed'} </h5>
                         </div>
                         <div class="card-body">
                             <p>Status: <span class="${dev.connected ? 'online' : 'offline'}">${dev.connected ? 'Online' : 'Offline'}</span></p>
