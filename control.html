@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vehicle Control</title>
 
-  <!-- Particle JS (same library you already use) -->
   <script src="https://cdn.jsdelivr.net/npm/particle-api-js@8/dist/particle.min.js"></script>
 
   <style>
@@ -48,7 +47,6 @@
       background: rgba(255,255,255,.08); color:#fff; cursor:pointer;
     }
 
-    /* Sensor tiles */
     .tiles{
       padding: 12px 18px 0;
       display:grid;
@@ -85,11 +83,9 @@
     .pill.online{border-color: rgba(25,211,91,.35); color: rgba(25,211,91,.95)}
     .pill.offline{border-color: rgba(220,53,69,.35); color: rgba(220,53,69,.95)}
 
-    /* CAN status */
     .pill.can-ok {border-color: rgba(25,211,91,.35);color: rgba(25,211,91,.95);}
     .pill.can-off {border-color: rgba(220,53,69,.35);color: rgba(220,53,69,.95);}
 
-    /* Engine status */
     .pill.engine-on {border-color: rgba(25,211,91,.35);color: rgba(25,211,91,.95);}
     .pill.engine-off {border-color: rgba(255,255,255,.25);color: rgba(255,255,255,.75);}
 
@@ -111,7 +107,6 @@
     }
     .round:active{transform: scale(.98)}
 
-    /* Pressed + sending animation (for round buttons) */
     .round.pressed{
       transform: scale(0.94);
       background: rgba(25,211,91,.25);
@@ -123,7 +118,6 @@
       pointer-events: none;
     }
 
-    /* Disabled state (offline lock) */
     .disabled-ui{
       opacity: 0.45 !important;
       pointer-events: none !important;
@@ -141,7 +135,6 @@
       border: 1px solid rgba(255,255,255,.10);
     }
 
-    /* Spinner ring (hidden by default) */
     .engine-spinner{
       position:absolute;
       inset:-6px;
@@ -177,13 +170,11 @@
     .engine-sub{margin-top:6px;font-size:11px;font-weight:800;color:rgba(255,255,255,.55);letter-spacing:.8px;}
     .engine-on .engine-sub{color:rgba(25,211,91,.95)}
 
-    /* Engine long-press visual feedback */
     .engine-pressing{
       transform: scale(0.96);
       filter: brightness(1.2);
     }
 
-    /* Toggles section */
     .toggles{
       position:absolute;
       left:0; right:0;
@@ -259,7 +250,7 @@
       <button class="round" id="idleUpBtn">IDLEUP</button>
 
       <button class="engine-wrap" id="engineBtn" aria-label="Engine start stop">
-        <div class="engine-spinner" id="engineSpinner"></div>
+        <div class="engine-spinner"></div>
         <div class="engine-ring"></div>
         <div class="engine-inner" id="engineInner">
           <div class="engine-glow"></div>
@@ -276,11 +267,6 @@
     <div class="toast" id="toast"></div>
 
     <div class="toggles">
-      <div class="toggleRow" id="idleUpRow">
-        <div>Idle Up</div>
-        <input type="checkbox" id="idleUpToggle">
-      </div>
-
       <div class="toggleRow" id="proHeatRow">
         <div>Pro Heat</div>
         <input type="checkbox" id="proHeatToggle">
@@ -296,7 +282,6 @@
   const deviceName = qs.get("name") || "Device";
   const token = sessionStorage.particleToken;
 
-  // UI refs
   const titleEl = document.getElementById("title");
   const subEl = document.getElementById("sub");
   const toastEl = document.getElementById("toast");
@@ -314,13 +299,11 @@
   const engineInner = document.getElementById("engineInner");
   const engineSub = document.getElementById("engineSub");
 
-  const idleUpToggle = document.getElementById("idleUpToggle");
   const proHeatToggle = document.getElementById("proHeatToggle");
 
   const idleUpBtn = document.getElementById("idleUpBtn");
   const refreshBtn = document.getElementById("refreshBtn");
 
-  // state
   let currentRPM = 0;
   let longPressMs = 800;
   let pressTimer = null;
@@ -338,40 +321,27 @@
     toast._t = setTimeout(()=>toastEl.style.display="none", ms);
   }
 
-  // Haptic vibration (mobile)
   function haptic(ms=25){
     if (navigator.vibrate) navigator.vibrate(ms);
   }
 
-  // Press helpers for round buttons
-  function pressBtn(btn) {
-    btn.classList.add("pressed", "sending");
-  }
-  function releaseBtn(btn, delay = 600) {
-    setTimeout(() => btn.classList.remove("pressed", "sending"), delay);
-  }
+  function pressBtn(btn) { btn.classList.add("pressed", "sending"); }
+  function releaseBtn(btn, delay = 600) { setTimeout(() => btn.classList.remove("pressed", "sending"), delay); }
 
-  // Lock UI when offline
   function setControlsEnabled(enabled){
-    const els = [idleUpBtn, refreshBtn, engineBtn, idleUpToggle, proHeatToggle];
+    const els = [idleUpBtn, refreshBtn, engineBtn, proHeatToggle];
     els.forEach(el => {
       if (!el) return;
       el.classList.toggle("disabled-ui", !enabled);
-      if (el.tagName === "INPUT" || el.tagName === "BUTTON") {
-        el.disabled = !enabled;
-      }
-      // engineBtn is a button; ok to disable
+      if (el.tagName === "INPUT" || el.tagName === "BUTTON") el.disabled = !enabled;
     });
   }
 
   function setEngineUI(rpm){
     const on = (rpm > 0);
-
     engineInner.classList.toggle("engine-on", on);
-
     enginePill.textContent = on ? "ENGINE ON" : "ENGINE OFF";
     engineSub.textContent = isCranking ? "CRANKING" : "HOLD";
-
     enginePill.classList.toggle("engine-on", on);
     enginePill.classList.toggle("engine-off", !on);
   }
@@ -394,14 +364,11 @@
     setEngineUI(currentRPM);
   }
 
-  // Firmware format: {:temp:185:oilPsi:42:rpm:650:proheatStatus:1:}
   function parseSensorJson(str) {
     const out = {};
     if (!str) return out;
-
     const cleaned = String(str).replace(/[{}]/g, "");
     const parts = cleaned.split(":").filter(p => p.length);
-
     for (let i = 0; i < parts.length - 1; i += 2) {
       const key = parts[i];
       const val = Number(parts[i + 1]);
@@ -422,7 +389,6 @@
       setOnlineUI(isConnected);
       setControlsEnabled(isConnected);
 
-      // CANstate
       if (isConnected) {
         try {
           const can = await particle.getVariable({ deviceId, name: "CANstate", auth: token });
@@ -436,13 +402,7 @@
           canPill.textContent = "CAN —";
           canPill.classList.remove("can-ok", "can-off");
         }
-      } else {
-        canPill.textContent = "CAN —";
-        canPill.classList.remove("can-ok", "can-off");
-      }
 
-      // Sensor JSON (only if connected)
-      if (isConnected) {
         const v = await particle.getVariable({ deviceId, name: "deviceSensorJson", auth: token });
         const data = parseSensorJson(v.body.result);
 
@@ -464,6 +424,8 @@
           lastProHeat = ph;
         }
       } else {
+        canPill.textContent = "CAN —";
+        canPill.classList.remove("can-ok", "can-off");
         rpmEl.textContent = "--";
         tempEl.textContent = "--";
         oilEl.textContent = "--";
@@ -471,8 +433,7 @@
         currentRPM = 0;
         setEngineUI(0);
       }
-
-    } catch (e) {
+    } catch {
       subEl.textContent = "Status error";
       setControlsEnabled(false);
     }
@@ -508,7 +469,6 @@
     }
   }
 
-  // Engine long press: start if rpm==0 else stop
   function startPress(e) {
     e.preventDefault();
     if (!isConnected) return;
@@ -519,15 +479,9 @@
     clearTimeout(pressTimer);
     pressTimer = setTimeout(async () => {
       const cmd = (currentRPM > 0) ? "stop" : "start";
-
-      // show spinner during start/stop attempt (especially start)
       setCrankingUI(true);
-
       await sendCommand(cmd, { showToast: true, haptics: true });
-
-      // turn spinner off after a short delay (status refresh will also update)
       setTimeout(() => setCrankingUI(false), 2200);
-
       engineInner.classList.remove("engine-pressing");
     }, longPressMs);
   }
@@ -539,26 +493,15 @@
 
   engineBtn.addEventListener("mousedown", startPress);
   engineBtn.addEventListener("touchstart", startPress, { passive: false });
-
   engineBtn.addEventListener("mouseup", cancelPress);
   engineBtn.addEventListener("mouseleave", cancelPress);
   engineBtn.addEventListener("touchend", cancelPress);
-
-  // Toggles
-  idleUpToggle.onchange = async () => {
-    if (!isConnected) { idleUpToggle.checked = false; return; }
-    if (idleUpToggle.checked) {
-      await sendCommand("idleUp");
-      setTimeout(()=> idleUpToggle.checked = false, 250);
-    }
-  };
 
   proHeatToggle.onchange = async () => {
     if (!isConnected) { proHeatToggle.checked = !!lastProHeat; return; }
     await sendCommand(proHeatToggle.checked ? "proHeattrue" : "proHeatfalse");
   };
 
-  // Round buttons with pressed animation + disable while sending
   idleUpBtn.onclick = async () => {
     if (!isConnected) return toast("Device is offline.");
     pressBtn(idleUpBtn);
@@ -573,7 +516,6 @@
     releaseBtn(refreshBtn);
   };
 
-  // Start
   setControlsEnabled(false);
   refreshStatus();
   setInterval(refreshStatus, 5000);
