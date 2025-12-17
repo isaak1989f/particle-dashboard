@@ -218,7 +218,7 @@
     </div>
 
     <div class="controls">
-      <button class="round" id="unlockBtn" title="Unlock">IDLEUP</button>
+      <button class="round" id="idleUpBtn" title="Unlock">IDLEUP</button>
        
       <button class="engine-wrap" id="engineBtn" aria-label="Engine start stop">
         <div class="engine-ring"></div>
@@ -231,7 +231,7 @@
         </div>
       </button>
 
-      <button class="round" id="lockBtn" title="Lock">REFRESH</button>
+      <button class="round" id="refreshBtn" title="Lock">REFRESH</button>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -455,8 +455,8 @@
   };
 
   // Optional placeholders for lock/unlock (only if your firmware supports it later)
-  document.getElementById("lockBtn").onclick = () =>refreshStatus(); toast("Lock (Refreshing)");
-  document.getElementById("unlockBtn").onclick = () => sendCommand("idleUp"); toast("Unlock (idleUp cammand sent)");
+  document.getElementById("refreshBtn").onclick = () =>sendCommand("ingOn"); toast("Lock (Refreshing)");
+  document.getElementById("idleUpBtn").onclick = () => sendCommand("idleUp"); toast("Unlock (idleUp cammand sent)");
 
   // Start
   refreshStatus();
